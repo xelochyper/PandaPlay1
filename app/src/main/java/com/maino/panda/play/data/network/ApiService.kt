@@ -1,12 +1,13 @@
-package com.example.data.network
+package com.maino.panda.play.data.network
 
-import com.example.data.model.DetailResponse
-import com.example.data.model.GameItem
-import com.example.data.model.HomeResponse
-import com.example.data.model.LoginRequest
-import com.example.data.model.LoginResponse
-import com.example.data.model.ProfileResponse
-import com.example.data.model.UpdateProfileRequest
+import com.maino.panda.play.data.model.AppUpdateResponse
+import com.maino.panda.play.data.model.DetailResponse
+import com.maino.panda.play.data.model.GameItem
+import com.maino.panda.play.data.model.HomeResponse
+import com.maino.panda.play.data.model.LoginRequest
+import com.maino.panda.play.data.model.LoginResponse
+import com.maino.panda.play.data.model.ProfileResponse
+import com.maino.panda.play.data.model.UpdateProfileRequest
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -59,4 +60,9 @@ interface ApiService {
         @Body request: UpdateProfileRequest,
         @Header("Authorization") token: String? = null
     ): Response<ProfileResponse>
+
+    @GET("api/check_update")
+    suspend fun checkUpdate(
+        @Query("version_code") versionCode: Int
+    ): Response<AppUpdateResponse>
 }

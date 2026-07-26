@@ -1,6 +1,5 @@
-package com.example.ui.screens
+package com.maino.panda.play.ui.screens
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -29,23 +28,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.MainViewModel
+import com.maino.panda.play.ui.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ModScreen(
+fun LiveryScreen(
     viewModel: MainViewModel,
     onItemClick: (String) -> Unit
 ) {
-    val modsList by viewModel.modsList.collectAsState()
-    val selectedCategory by viewModel.selectedModCategory.collectAsState()
-    val isRefreshing by viewModel.isModsRefreshing.collectAsState()
+    val liveriesList by viewModel.liveriesList.collectAsState()
+    val selectedCategory by viewModel.selectedLiveryCategory.collectAsState()
+    val isRefreshing by viewModel.isLiveriesRefreshing.collectAsState()
 
-    val categories = listOf("Semua", "APK Free", "Premium", "Map", "Kodename", "Vehicle")
+    val categories = listOf("Semua", "APK Free", "Premium", "Yudistira", "JB3", "XHD", "Vintage")
 
     PullToRefreshBox(
         isRefreshing = isRefreshing,
-        onRefresh = { viewModel.refreshMods() },
+        onRefresh = { viewModel.refreshLiveries() },
         modifier = Modifier.fillMaxSize()
     ) {
         Column(
@@ -55,7 +54,7 @@ fun ModScreen(
                 .padding(bottom = 80.dp)
         ) {
             Text(
-                text = "Katalog MOD BUSSID",
+                text = "Katalog Livery BUSSID HD",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF0F172A),
@@ -79,7 +78,7 @@ fun ModScreen(
                                 if (!isSelected) Modifier.border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(20.dp))
                                 else Modifier
                             )
-                            .clickable { viewModel.fetchMods(category) }
+                            .clickable { viewModel.fetchLiveries(category) }
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                     ) {
                         Text(
@@ -94,17 +93,17 @@ fun ModScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 2-Column Grid of MOD Cards
+            // 2-Column Grid of Livery Cards
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(modsList) { modItem ->
+                items(liveriesList) { liveryItem ->
                     PlayStoreGameCard(
-                        item = modItem,
-                        onClick = { onItemClick(modItem.id) }
+                        item = liveryItem,
+                        onClick = { onItemClick(liveryItem.id) }
                     )
                 }
             }

@@ -1,4 +1,4 @@
-package com.example.data.local
+package com.maino.panda.play.data.local
 
 import android.content.Context
 import android.content.SharedPreferences

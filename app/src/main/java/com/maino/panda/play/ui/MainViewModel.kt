@@ -1,21 +1,33 @@
-package com.example.ui
+package com.maino.panda.play.ui
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.data.local.SessionManager
-import com.example.data.model.BannerItem
-import com.example.data.model.DetailResponse
-import com.example.data.model.GameItem
-import com.example.data.model.HomeResponse
-import com.example.data.model.ItemDetail
-import com.example.data.model.LoginRequest
-import com.example.data.model.UserProfile
-import com.example.data.network.ApiClient
-import com.example.util.ApkInstaller
+import com.maino.panda.play.data.local.SessionManager
+import com.maino.panda.play.data.model.BannerItem
+import com.maino.panda.play.data.model.DetailResponse
+import com.maino.panda.play.data.model.GameItem
+import com.maino.panda.play.data.model.HomeResponse
+import com.maino.panda.play.data.model.ItemDetail
+import com.maino.panda.play.data.model.LoginRequest
+import com.maino.panda.play.data.model.UserProfile
+import com.maino.panda.play.data.network.ApiClient
+import com.maino.panda.play.util.ApkInstaller
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+
+data class UpdateState(
+    val isUpdateAvailable: Boolean = false,
+    val isMandatory: Boolean = false,
+    val latestVersionName: String = "1.0.0",
+    val latestVersionCode: Int = 1,
+    val updateUrl: String = "",
+    val releaseNotes: String = "",
+    val isChecking: Boolean = false,
+    val errorMessage: String? = null
+)
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -504,13 +516,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             price = if (isPrem) "Rp 15.000" else "Rp 0",
             description = "Aplikasi Panda Play menghadirkan file MOD/Livery BUSSID terlengkap. Dilengkapi fitur full animasi pintu, wiper, lampu strobo gahar, dan suara knalpot wolf rintik.",
             downloadLinks = listOf(
-                com.example.data.model.DownloadLink(
+                com.maino.panda.play.data.model.DownloadLink(
                     serverName = "Server 1 - APK Auto Install (Direct)",
                     url = "https://maino.web.id/download/apk/$id.apk",
                     fileSize = "32 MB",
                     isApk = true
                 ),
-                com.example.data.model.DownloadLink(
+                com.maino.panda.play.data.model.DownloadLink(
                     serverName = "Server 2 - Google Drive Mirror",
                     url = "https://maino.web.id/download/mirror/$id",
                     fileSize = "32 MB",
@@ -535,8 +547,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         email = sessionManager.getEmail(),
                         isVerified = true,
                         purchases = listOf(
-                            com.example.data.model.PurchaseItem("p1", "MOD Map Kelok 44", "24 Juli 2026", "Rp 15.000", "SUCCESS"),
-                            com.example.data.model.PurchaseItem("p2", "Livery PO Haryanto Yudistira", "20 Juli 2026", "Rp 10.000", "SUCCESS")
+                            com.maino.panda.play.data.model.PurchaseItem("p1", "MOD Map Kelok 44", "24 Juli 2026", "Rp 15.000", "SUCCESS"),
+                            com.maino.panda.play.data.model.PurchaseItem("p2", "Livery PO Haryanto Yudistira", "20 Juli 2026", "Rp 10.000", "SUCCESS")
                         )
                     )
                 }
@@ -548,8 +560,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     email = sessionManager.getEmail(),
                     isVerified = true,
                     purchases = listOf(
-                        com.example.data.model.PurchaseItem("p1", "MOD Map Kelok 44", "24 Juli 2026", "Rp 15.000", "SUCCESS"),
-                        com.example.data.model.PurchaseItem("p2", "Livery PO Haryanto Yudistira", "20 Juli 2026", "Rp 10.000", "SUCCESS")
+                        com.maino.panda.play.data.model.PurchaseItem("p1", "MOD Map Kelok 44", "24 Juli 2026", "Rp 15.000", "SUCCESS"),
+                        com.maino.panda.play.data.model.PurchaseItem("p2", "Livery PO Haryanto Yudistira", "20 Juli 2026", "Rp 10.000", "SUCCESS")
                     )
                 )
             } finally {
@@ -562,7 +574,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 _isProfileLoading.value = true
-                val request = com.example.data.model.UpdateProfileRequest(
+                val request = com.maino.panda.play.data.model.UpdateProfileRequest(
                     fullName = fullName,
                     profilePic = profilePicUrl.ifEmpty { null }
                 )
@@ -604,5 +616,81 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun downloadAndInstall(apkUrl: String, fileName: String) {
         apkInstaller.downloadAndInstallApk(apkUrl, fileName, viewModelScope)
+    }
+
+    // In-App Update State Management
+    private val _updateState = MutableStateFlow<UpdateState?>(null)
+    val updateState: StateFlow<UpdateState?> = _updateState.asStateFlow()
+
+    fun checkForUpdate(currentVersionCode: Int, isManualCheck: Boolean = false) {
+        viewModelScope.launch {
+            try {
+                if (isManualCheck) {
+                    _updateState.value = UpdateState(isChecking = true)
+                }
+                val response = ApiClient.apiService.checkUpdate(versionCode = currentVersionCode)
+                if (response.isSuccessful && response.body() != null) {
+                    val body = response.body()!!
+                    val isNewer = body.latestVersionCode > currentVersionCode
+                    val isForce = body.isMandatory || (currentVersionCode < body.minSupportedVersionCode)
+                    if (isNewer) {
+                        _updateState.value = UpdateState(
+                            isUpdateAvailable = true,
+                            isMandatory = isForce,
+                            latestVersionName = body.latestVersionName,
+                            latestVersionCode = body.latestVersionCode,
+                            updateUrl = body.updateUrl,
+                            releaseNotes = body.releaseNotes,
+                            isChecking = false
+                        )
+                    } else {
+                        if (isManualCheck) {
+                            _updateState.value = UpdateState(
+                                isUpdateAvailable = false,
+                                isChecking = false,
+                                errorMessage = "Aplikasi Anda sudah versi terbaru (v$currentVersionCode)."
+                            )
+                        } else {
+                            _updateState.value = null
+                        }
+                    }
+                } else {
+                    handleFallbackUpdateCheck(currentVersionCode, isManualCheck)
+                }
+            } catch (e: Exception) {
+                handleFallbackUpdateCheck(currentVersionCode, isManualCheck)
+            }
+        }
+    }
+
+    private fun handleFallbackUpdateCheck(currentVersionCode: Int, isManualCheck: Boolean) {
+        if (isManualCheck) {
+            _updateState.value = UpdateState(
+                isUpdateAvailable = false,
+                isChecking = false,
+                errorMessage = "Gagal terhubung ke server pembaruan."
+            )
+        } else {
+            _updateState.value = null
+        }
+    }
+
+    fun dismissUpdateDialog() {
+        val current = _updateState.value
+        if (current?.isMandatory != true) {
+            _updateState.value = null
+        }
+    }
+
+    fun triggerMockUpdatePrompt(isMandatory: Boolean = false) {
+        _updateState.value = UpdateState(
+            isUpdateAvailable = true,
+            isMandatory = isMandatory,
+            latestVersionName = "1.2.0",
+            latestVersionCode = 2,
+            updateUrl = "https://maino.web.id/download/apk/panda_play_v1.2.apk",
+            releaseNotes = "• Penambahan fitur In-App Update otomatis\n• Peningkatan kecepatan unduh MOD & Livery\n• Perbaikan antarmuka dan stabilitas sistem",
+            isChecking = false
+        )
     }
 }

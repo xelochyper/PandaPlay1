@@ -1,4 +1,4 @@
-package com.example.ui.screens
+package com.maino.panda.play.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -55,9 +55,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.R
-import com.example.data.model.GameItem
-import com.example.ui.MainViewModel
+import com.maino.panda.play.R
+import com.maino.panda.play.data.model.GameItem
+import com.maino.panda.play.ui.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

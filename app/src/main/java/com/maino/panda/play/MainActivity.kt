@@ -1,4 +1,4 @@
-package com.example
+package com.maino.panda.play
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -21,6 +21,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,16 +38,18 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.ui.MainViewModel
-import com.example.ui.screens.DetailScreen
-import com.example.ui.screens.HomeScreen
-import com.example.ui.screens.LiveryScreen
-import com.example.ui.screens.LoginScreen
-import com.example.ui.screens.ModScreen
-import com.example.ui.screens.ProfileEditScreen
-import com.example.ui.screens.ProfileScreen
-import com.example.ui.screens.SplashScreen
-import com.example.ui.theme.MyApplicationTheme
+import com.maino.panda.play.service.MyFirebaseMessagingService
+import com.maino.panda.play.ui.InAppUpdateDialog
+import com.maino.panda.play.ui.MainViewModel
+import com.maino.panda.play.ui.screens.DetailScreen
+import com.maino.panda.play.ui.screens.HomeScreen
+import com.maino.panda.play.ui.screens.LiveryScreen
+import com.maino.panda.play.ui.screens.LoginScreen
+import com.maino.panda.play.ui.screens.ModScreen
+import com.maino.panda.play.ui.screens.ProfileEditScreen
+import com.maino.panda.play.ui.screens.ProfileScreen
+import com.maino.panda.play.ui.screens.SplashScreen
+import com.maino.panda.play.ui.theme.MyApplicationTheme
 
 enum class BottomTab(val route: String, val title: String, val icon: ImageVector) {
     HOME("tab_home", "Beranda", Icons.Default.Home),
@@ -64,7 +67,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         // Create Notification Channel for FCM
-        com.example.service.MyFirebaseMessagingService.createNotificationChannel(this)
+        MyFirebaseMessagingService.createNotificationChannel(this)
 
         // Request POST_NOTIFICATIONS permission on Android 13+
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
@@ -73,20 +76,40 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Fetch FCM Registration Token
+        // Fetch FCM Registration Token safely
         try {
-            com.google.firebase.messaging.FirebaseMessaging.getInstance().token
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        val token = task.result
-                        android.util.Log.d("PandaFCM", "FCM Registration Token: $token")
-                    } else {
-                        android.util.Log.w("PandaFCM", "Fetching FCM registration token failed", task.exception)
+            if (com.google.firebase.FirebaseApp.getApps(this).isEmpty()) {
+                com.google.firebase.FirebaseApp.initializeApp(this)
+            }
+            if (com.google.firebase.FirebaseApp.getApps(this).isNotEmpty()) {
+                com.google.firebase.messaging.FirebaseMessaging.getInstance().token
+                    .addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            val token = task.result
+                            android.util.Log.d("PandaFCM", "FCM Registration Token: $token")
+                        } else {
+                            android.util.Log.w("PandaFCM", "Fetching FCM registration token failed", task.exception)
+                        }
                     }
-                }
+            } else {
+                android.util.Log.w("PandaFCM", "FirebaseApp not initialized (no configuration found)")
+            }
         } catch (e: Exception) {
-            android.util.Log.e("PandaFCM", "Firebase messaging initialization error", e)
+            android.util.Log.e("PandaFCM", "Firebase messaging initialization skipped: ${e.message}")
         }
+
+        // Trigger In-App Update check on launch
+        val currentVersionCode = try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                packageManager.getPackageInfo(packageName, 0).longVersionCode.toInt()
+            } else {
+                @Suppress("DEPRECATION")
+                packageManager.getPackageInfo(packageName, 0).versionCode
+            }
+        } catch (e: Exception) {
+            1
+        }
+        viewModel.checkForUpdate(currentVersionCode)
 
         setContent {
             val isDarkMode by viewModel.isDarkMode.collectAsState()
@@ -101,6 +124,17 @@ class MainActivity : ComponentActivity() {
 fun PandaPlayApp(viewModel: MainViewModel) {
     val navController = rememberNavController()
     val isLoggedIn by viewModel.isLoggedIn.collectAsState()
+    val updateState by viewModel.updateState.collectAsState()
+
+    // Show In-App Update Prompt when an update is available
+    updateState?.let { state ->
+        if (state.isUpdateAvailable) {
+            InAppUpdateDialog(
+                updateState = state,
+                viewModel = viewModel
+            )
+        }
+    }
 
     NavHost(
         navController = navController,

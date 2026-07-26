@@ -1,4 +1,4 @@
-package com.example.data.model
+package com.maino.panda.play.data.model
 
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
@@ -134,4 +134,18 @@ data class ProfileResponse(
 data class UpdateProfileRequest(
     @Json(name = "full_name") val fullName: String,
     @Json(name = "profile_pic") val profilePic: String? = null
+)
+
+/**
+ * In-App Update API Response model
+ */
+@JsonClass(generateAdapter = true)
+data class AppUpdateResponse(
+    @Json(name = "status") val status: Boolean = true,
+    @Json(name = "latest_version_code") val latestVersionCode: Int = 1,
+    @Json(name = "latest_version_name") val latestVersionName: String = "1.0.0",
+    @Json(name = "is_mandatory") val isMandatory: Boolean = false,
+    @Json(name = "update_url") val updateUrl: String = "https://maino.web.id/download/apk/panda_play_latest.apk",
+    @Json(name = "release_notes") val releaseNotes: String = "Pembaruan sistem & perbaikan bug performa.",
+    @Json(name = "min_supported_version_code") val minSupportedVersionCode: Int = 1
 )
