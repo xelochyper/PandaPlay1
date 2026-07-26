@@ -1,0 +1,6 @@
+{
+  "name": "Panda Play",
+  "description": "Client portal untuk portal game simulator Bus Simulator Indonesia Panda Play",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
